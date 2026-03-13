@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CoopV2 — Asistentes IA</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red: #cc0000;
+    --red-bright: #ff2200;
+    --red-glow: rgba(204,0,0,0.4);
+    --yt: #ff0000;
+    --yt-glow: rgba(255,0,0,0.4);
+    --dark: #080808;
+    --dark2: #0f0f0f;
+    --dark3: #161616;
+    --dark4: #1e1e1e;
+    --text: #e8e8e8;
+    --text-dim: #888;
+    --border: rgba(204,0,0,0.3);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--dark);
+    color: var(--text);
+    font-family: 'Exo 2', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(204,0,0,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(204,0,0,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 16px 60px;
+  }
+  header {
+    text-align: center;
+    padding: 40px 0 28px;
+  }
+  .logo-tag {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--red);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  header h1 {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: clamp(36px, 7vw, 70px);
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #fff;
+    text-shadow: 0 0 30px var(--red-glow);
+  }
+  header h1 span { color: var(--red-bright); }
+  .subtitle { margin-top: 8px; font-size: 13px; color: var(--text-dim); letter-spacing: 2px; }
+  .divider {
+    width: 100px; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--red), transparent);
+    margin: 20px auto;
+  }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 14px 20px;
+    background: var(--dark2);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    color: var(--text-dim);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+  .tab-btn:first-child { border-radius: 8px 0 0 0; border-right: none; }
+  .tab-btn:last-child  { border-radius: 0 8px 0 0; }
+  .tab-btn.active {
+    background: var(--dark3);
+    color: #fff;
+    border-top: 2px solid var(--red);
+  }
+  .tab-btn.yt.active { border-top-color: var(--yt); color: var(--yt); }
+  .tab-btn:hover:not(.active) { background: var(--dark3); color: var(--text); }
+
+  /* CHAT PANEL */
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .chat-window {
+    background: var(--dark2);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    overflow: hidden;
+    box-shadow: 0 0 40px rgba(0,0,0,0.8);
+  }
+  .chat-topbar {
+    background: var(--dark3);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .bot-avatar {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .bot-avatar.discord { background: var(--red); box-shadow: 0 0 10px var(--red-glow); }
+  .bot-avatar.yt      { background: var(--yt);  box-shadow: 0 0 10px var(--yt-glow); }
+  .bot-name { font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 15px; color: #fff; }
+  .bot-status { font-size: 11px; color: #44ff88; display: flex; align-items: center; gap: 5px; }
+  .bot-status::before {
+    content: ''; width: 6px; height: 6px;
+    background: #44ff88; border-radius: 50%;
+    display: inline-block; box-shadow: 0 0 6px #44ff88;
+  }
+
+  .chat-messages {
+    padding: 20px;
+    height: 400px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    scroll-behavior: smooth;
+  }
+  .chat-messages::-webkit-scrollbar { width: 4px; }
+  .chat-messages::-webkit-scrollbar-track { background: var(--dark2); }
+  .chat-messages::-webkit-scrollbar-thumb { background: var(--red); border-radius: 2px; }
+
+  .msg { display: flex; gap: 10px; opacity: 0; transform: translateY(8px); transition: opacity 0.3s, transform 0.3s; }
+  .msg.visible { opacity: 1; transform: translateY(0); }
+  .msg.user { flex-direction: row-reverse; }
+  .msg-avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; flex-shrink: 0;
+    font-family: 'Rajdhani', sans-serif;
+  }
+  .msg.bot  .msg-avatar { background: var(--red); color: #fff; }
+  .msg.bot.yt-msg .msg-avatar { background: var(--yt); }
+  .msg.user .msg-avatar { background: var(--dark4); color: var(--text-dim); border: 1px solid var(--border); }
+  .msg-bubble {
+    max-width: 78%; padding: 10px 14px; border-radius: 8px;
+    font-size: 14px; line-height: 1.6;
+  }
+  .msg.bot  .msg-bubble { background: var(--dark3); border: 1px solid var(--border); color: var(--text); border-top-left-radius: 2px; }
+  .msg.user .msg-bubble { background: rgba(204,0,0,0.2); border: 1px solid rgba(204,0,0,0.4); color: #fff; border-top-right-radius: 2px; }
+  .msg-bubble code { background: rgba(255,255,255,0.08); padding: 1px 5px; border-radius: 3px; font-family: 'Share Tech Mono', monospace; font-size: 12px; color: var(--red-bright); }
+  .msg-bubble ul { padding-left: 18px; margin-top: 6px; }
+  .msg-bubble ul li { margin-bottom: 4px; }
+
+  .typing { display: flex; gap: 4px; align-items: center; padding: 4px 0; }
+  .typing span { width: 6px; height: 6px; background: var(--red); border-radius: 50%; animation: bounce 1s infinite; }
+  .typing span:nth-child(2) { animation-delay: 0.2s; }
+  .typing span:nth-child(3) { animation-delay: 0.4s; }
+
+  .quick-topics {
+    padding: 10px 20px;
+    border-top: 1px solid var(--border);
+    background: var(--dark3);
+    display: flex; flex-wrap: wrap; gap: 7px;
+  }
+  .topic-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 5px 11px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: 'Exo 2', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .topic-btn:hover { border-color: var(--red); color: var(--red-bright); background: rgba(204,0,0,0.08); }
+  .topic-btn.yt-btn:hover { border-color: var(--yt); color: var(--yt); background: rgba(255,0,0,0.08); }
+
+  .chat-input-area {
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    background: var(--dark2);
+    display: flex; gap: 10px; align-items: flex-end;
+  }
+  textarea {
+    flex: 1;
+    background: var(--dark4);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: 'Exo 2', sans-serif;
+    font-size: 14px;
+    padding: 10px 14px;
+    resize: none;
+    min-height: 42px; max-height: 120px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  textarea:focus { border-color: var(--red); box-shadow: 0 0 8px var(--red-glow); }
+  textarea::placeholder { color: var(--text-dim); }
+  .send-btn {
+    background: var(--red);
+    border: none; border-radius: 6px;
+    color: #fff; width: 42px; height: 42px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; flex-shrink: 0;
+    font-size: 16px;
+  }
+  .send-btn.yt { background: var(--yt); }
+  .send-btn:hover { transform: scale(1.05); opacity: 0.9; }
+  .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .footer { text-align: center; margin-top: 28px; font-size: 12px; color: var(--text-dim); }
+  .footer span { color: var(--red); }
+
+  @keyframes bounce {
+    0%,80%,100% { transform: translateY(0); }
+    40% { transform: translateY(-6px); }
+  }
+  @media (max-width: 600px) {
+    .chat-messages { height: 320px; }
+    .msg-bubble { max-width: 88%; font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="logo-tag">CoopV2 • Left 4 Dead 2</div>
+    <h1>ASISTENTES <span>IA</span></h1>
+    <p class="subtitle">Discord & YouTube · CoopV2</p>
+    <div class="divider"></div>
+  </header>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('discord')">🎮 Discord</button>
+    <button class="tab-btn yt" onclick="switchTab('yt')">▶ YouTube</button>
+  </div>
+
+  <!-- DISCORD PANEL -->
+  <div class="tab-panel active" id="panel-discord">
+    <div class="chat-window">
+      <div class="chat-topbar">
+        <div class="bot-avatar discord">DC</div>
+        <div>
+          <div class="bot-name">Asistente Discord</div>
+          <div class="bot-status">En línea</div>
+        </div>
+      </div>
+      <div class="chat-messages" id="msgs-discord"></div>
+      <div class="quick-topics">
+        <button class="topic-btn" onclick="sendQ('discord','¿Cómo configuro los roles VIP en Discord?')">🎖️ Roles VIP</button>
+        <button class="topic-btn" onclick="sendQ('discord','¿Qué canales debo crear para mi servidor?')">📢 Canales</button>
+        <button class="topic-btn" onclick="sendQ('discord','¿Cómo configuro Carl-bot para automod?')">🤖 Carl-bot</button>
+        <button class="topic-btn" onclick="sendQ('discord','¿Cómo pongo las reglas en Discord?')">📋 Reglas</button>
+        <button class="topic-btn" onclick="sendQ('discord','¿Cómo configuro roles automáticos al entrar?')">⚙️ Auto-roles</button>
+      </div>
+      <div class="chat-input-area">
+        <textarea id="input-discord" placeholder="Pregunta sobre tu Discord CoopV2..." rows="1"
+          onkeydown="handleKey(event,'discord')" oninput="autoResize(this)"></textarea>
+        <button class="send-btn" id="btn-discord" onclick="sendMsg('discord')">➤</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- YOUTUBE PANEL -->
+  <div class="tab-panel" id="panel-yt">
+    <div class="chat-window">
+      <div class="chat-topbar">
+        <div class="bot-avatar yt">YT</div>
+        <div>
+          <div class="bot-name">Experto YouTube</div>
+          <div class="bot-status">En línea</div>
+        </div>
+      </div>
+      <div class="chat-messages" id="msgs-yt"></div>
+      <div class="quick-topics">
+        <button class="topic-btn yt-btn" onclick="sendQ('yt','Hazme un título viral para un video de gameplay cooperativo de L4D2')">🔥 Título viral</button>
+        <button class="topic-btn yt-btn" onclick="sendQ('yt','Escríbeme una descripción completa para un video de Dead Center en CoopV2')">📝 Descripción</button>
+        <button class="topic-btn yt-btn" onclick="sendQ('yt','Dame los mejores hashtags y etiquetas para videos de L4D2')">🏷️ Hashtags</button>
+        <button class="topic-btn yt-btn" onclick="sendQ('yt','¿Cómo hago para que el algoritmo de YouTube recomiende mi canal?')">📈 Algoritmo</button>
+        <button class="topic-btn yt-btn" onclick="sendQ('yt','¿Cuándo es el mejor horario para subir videos de gaming?')">⏰ Horario</button>
+        <button class="topic-btn yt-btn" onclick="sendQ('yt','Dame ideas de miniaturas llamativas para L4D2')">🖼️ Miniaturas</button>
+      </div>
+      <div class="chat-input-area">
+        <textarea id="input-yt" placeholder="Pregunta sobre tu canal Shadow L4D2..." rows="1"
+          onkeydown="handleKey(event,'yt')" oninput="autoResize(this)"></textarea>
+        <button class="send-btn yt" id="btn-yt" onclick="sendMsg('yt')">➤</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">Powered by <span>Claude AI</span> · CoopV2 L4D2 · discord.gg/5Hww4Aft3</div>
+</div>
+
+<script>
+const PROMPTS = {
+  discord: `Eres el asistente oficial del servidor de Discord "CoopV2" de Left 4 Dead 2.
+Tu trabajo es ayudar al dueño del servidor (Shadow L4D2) a configurar su Discord de manera profesional.
+Conoces estos detalles:
+- Nombre: CoopV2 | Juego: Left 4 Dead 2 | Discord: discord.gg/5Hww4Aft3
+- VIP Normal (vip1) y VIP Premium (vip2) | Bot principal: Carl-bot | Dueño: Shadow L4D2
+Ayuda con: roles, permisos, canales, categorías, Carl-bot, automod, reglas, bienvenidas.
+Responde en español. Sé directo y práctico. Máximo 200 palabras. Sin saludos largos.`,
+
+  yt: `Eres un experto en YouTube especializado en canales de gaming, específicamente Left 4 Dead 2.
+El canal se llama "Shadow L4D2" (@ShadowL4d2) con 38 suscriptores, 35 videos.
+El servidor del juego se llama CoopV2 (discord.gg/5Hww4Aft3).
+Tu trabajo es ayudar a crecer el canal con:
+- Títulos virales y llamativos con palabras clave SEO
+- Descripciones optimizadas con keywords de L4D2
+- Hashtags y etiquetas que el algoritmo de YouTube premia
+- Estrategias para que el algoritmo recomiende el canal
+- Ideas de miniaturas llamativas
+- Horarios óptimos de publicación
+- Tips para aumentar CTR, retención y suscriptores
+Siempre optimiza para SEO de YouTube. Usa emojis estratégicamente en títulos.
+Responde en español. Sé específico y práctico. Máximo 250 palabras.`
+};
+
+const history = { discord: [], yt: [] };
+const loading = { discord: false, yt: false };
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', (i===0&&tab==='discord')||(i===1&&tab==='yt')));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(`panel-${tab}`).classList.add('active');
+}
+
+function addMsg(tab, role, content) {
+  history[tab].push({ role, content });
+  const container = document.getElementById(`msgs-${tab}`);
+  const div = document.createElement('div');
+  const isYT = tab === 'yt';
+  div.className = `msg ${role === 'user' ? 'user' : 'bot'} ${isYT && role !== 'user' ? 'yt-msg' : ''}`;
+  div.innerHTML = `
+    <div class="msg-avatar">${role === 'user' ? 'TÚ' : (isYT ? 'YT' : 'DC')}</div>
+    <div class="msg-bubble">${fmt(content)}</div>`;
+  container.appendChild(div);
+  setTimeout(() => div.classList.add('visible'), 10);
+  container.scrollTop = container.scrollHeight;
+}
+
+function fmt(t) {
+  return t
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/^[-•] (.+)/gm, '<li>$1</li>')
+    .replace(/\n/g, '<br>');
+}
+
+function showTyping(tab) {
+  const container = document.getElementById(`msgs-${tab}`);
+  const div = document.createElement('div');
+  div.className = `msg bot ${tab==='yt'?'yt-msg':''}`;
+  div.id = `typing-${tab}`;
+  div.innerHTML = `<div class="msg-avatar">${tab==='yt'?'YT':'DC'}</div><div class="msg-bubble"><div class="typing"><span></span><span></span><span></span></div></div>`;
+  container.appendChild(div);
+  setTimeout(() => div.classList.add('visible'), 10);
+  container.scrollTop = container.scrollHeight;
+}
+
+function removeTyping(tab) {
+  const el = document.getElementById(`typing-${tab}`);
+  if (el) el.remove();
+}
+
+async function sendMsg(tab) {
+  if (loading[tab]) return;
+  const input = document.getElementById(`input-${tab}`);
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  autoResize(input);
+  addMsg(tab, 'user', text);
+  document.getElementById(`btn-${tab}`).disabled = true;
+  loading[tab] = true;
+  showTyping(tab);
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: PROMPTS[tab],
+        messages: history[tab].filter(m => m.role !== 'system').slice(-10)
+      })
+    });
+    const data = await res.json();
+    removeTyping(tab);
+    addMsg(tab, 'assistant', data.content?.[0]?.text || 'Error al obtener respuesta.');
+  } catch(e) {
+    removeTyping(tab);
+    addMsg(tab, 'assistant', 'Error de conexión. Intenta de nuevo.');
+  }
+
+  loading[tab] = false;
+  document.getElementById(`btn-${tab}`).disabled = false;
+}
+
+function sendQ(tab, text) {
+  switchTab(tab);
+  document.getElementById(`input-${tab}`).value = text;
+  sendMsg(tab);
+}
+
+function handleKey(e, tab) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(tab); }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+window.onload = () => {
+  setTimeout(() => {
+    addMsg('discord', 'assistant', `¡Bienvenido al asistente de **CoopV2**! 🎮\n\nPuedo ayudarte a configurar tu servidor Discord. Toca un tema rápido o escribe tu pregunta.`);
+  }, 400);
+  setTimeout(() => {
+    addMsg('yt', 'assistant', `¡Hola Shadow L4D2! 🎬\n\nSoy tu experto en YouTube. Puedo generarte títulos virales, descripciones SEO, hashtags, y estrategias para que el algoritmo recomiende tu canal.\n\n¿Con qué empezamos?`);
+  }, 400);
+};
+</script>
+</body>
+</html>
